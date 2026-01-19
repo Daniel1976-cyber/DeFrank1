@@ -347,11 +347,10 @@
     /* ----------  CONFIG / DATOS INICIALES  ---------- */
     // Auto-detect server URL based on current location
     // Usar configuración automática desde config.js
-    // Configuración desde config.js
+    // Configuración dinámica desde window.API_CONFIG
+    const getConfig = () => window.API_CONFIG || {};
     const IS_LOCAL = window.IS_LOCAL;
 
-    // Log the detected API base for debugging
-    console.log('API Base detected:', API_BASE, '| Host:', window.location.hostname);
     // El catálogo se carga desde el backend
     let catalogo = [];
 
