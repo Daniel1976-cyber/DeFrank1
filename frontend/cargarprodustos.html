@@ -432,12 +432,12 @@
 
     // ===== UI UPDATES =====
     function updateAuthUI() {
-      if (USE_LOCAL_JSON) {
+      if (IS_LOCAL) {
         // Modo local: sin autenticación, mostrar directamente
         const loginScreen = document.getElementById('loginScreen');
         const mainContent = document.getElementById('mainContent');
-        loginScreen.style.display = 'none';
-        mainContent.style.display = 'block';
+        if (loginScreen) loginScreen.style.display = 'none';
+        if (mainContent) mainContent.style.display = 'block';
         document.getElementById('adminPanel').style.display = 'block';
         document.getElementById('productosTitle').style.display = 'block';
         return;
@@ -502,9 +502,10 @@
         setToken(token, remember);
         updateAuthUI();
         document.getElementById('password').value = '';
+        alert('✓ Conexión con GitHub exitosa. Ahora puedes gestionar tus productos.');
         await fetchProducts();
       } catch (e) {
-        alert('Error al autenticar con GitHub: ' + e.message);
+        alert('Error al conectar con GitHub: ' + e.message);
       }
     }
 
