@@ -534,331 +534,272 @@
       const newPassword1 = document.getElementById('passNueva1').value;
       const newPassword2 = document.getElementById('passNueva2').value;
 
-      if (!oldPassword || !newPassword1 || !newPassword2) {
-        alert('Por favor completa todos los campos');
-        return;
-      }
-
-      if (newPassword1 !== newPassword2) {
-        alert('Las nuevas contraseñas no coinciden');
-        return;
-      }
-
-      if (newPassword1.length < 6) {
-        alert('La nueva contraseña debe tener al menos 6 caracteres');
-        return;
-      }
-
-      const token = getToken();
-      if (!token) return alert('Debes iniciar sesión');
-
-      try {
-        const res = await fetch(API_BASE + '/auth/change-password', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer ' + token
-          },
-          body: JSON.stringify({ oldPassword, newPassword: newPassword1 })
-        });
-
-        if (!res.ok) {
-          const error = await res.text();
-          throw new Error(error || 'Error al cambiar contraseña');
-        }
-
-        alert('✓ Contraseña cambiada correctamente');
+      function changePassword() {
+        alert('En la versión de GitHub, no hay contraseña. Usas tu Token de Acceso Personal.');
         document.getElementById('passActual').value = '';
         document.getElementById('passNueva1').value = '';
         document.getElementById('passNueva2').value = '';
         mostrarCambioPass();
-      } catch (e) {
-        alert('Error: ' + e.message);
-      }
-    }
-
-    // ===== CARGAR PRODUCTOS =====
-    async function fetchProducts() {
-      try {
-        if (IS_LOCAL) {
-          const res = await fetch('data/catalog.json');
-          if (!res.ok) throw new Error('No se pudo cargar catálogo local');
-          catalogo = await res.json();
-        } else {
-          const token = getToken();
-          const headers = token ? { 'Authorization': `token ${token}` } : {};
-
-          const res = await fetch(`${CONFIG.API_URL}/repos/${CONFIG.REPO_OWNER}/${CONFIG.REPO_NAME}/contents/${CONFIG.FILE_PATH}`, { headers });
-
-          if (!res.ok) throw new Error('No se pudo obtener el catálogo de GitHub');
-
-          const data = await res.json();
-          ghSha = data.sha;
-          // GitHub devuelve el contenido en base64
-          const content = decodeURIComponent(escape(atob(data.content.replace(/\s/g, ''))));
-          catalogo = JSON.parse(content);
-        }
-        mostrarTabla();
-        renderProducts();
-      } catch (e) {
-        console.error(e);
-        alert('Error al cargar productos: ' + e.message);
-      }
-    }
-
-    // ===== FORMULARIO DE PRODUCTO =====
-    function mostrarForm(action, id = null) {
-      const div = document.getElementById('formDiv');
-      const title = document.getElementById('formTitle');
-
-      if (!action) {
-        div.style.display = 'none';
-        clearForm();
-        return;
       }
 
-      if (action === 'add') {
-        editando = false;
-        title.textContent = 'Añadir Nuevo Producto';
-        clearForm();
-      } else if (action === 'edit' && id) {
-        editando = true;
-        title.textContent = 'Editar Producto';
-        const p = catalogo.find(x => x.id === id);
-        if (!p) return alert('Producto no encontrado');
+      // ===== CARGAR PRODUCTOS =====
+      async function fetchProducts() {
+        try {
+          if (IS_LOCAL) {
+            const res = await fetch('data/catalog.json');
+            if (!res.ok) throw new Error('No se pudo cargar catálogo local');
+            catalogo = await res.json();
+          } else {
+            const token = getToken();
+            const headers = token ? { 'Authorization': `token ${token}` } : {};
 
-        document.getElementById('fId').value = p.id;
-        document.getElementById('fNombre').value = p.nombre;
-        document.getElementById('fPrecio').value = p.precio;
-        document.getElementById('fCat').value = p.categoria;
-        document.getElementById('fDisp').value = p.disponible ? 'true' : 'false';
+            const res = await fetch(`${CONFIG.API_URL}/repos/${CONFIG.REPO_OWNER}/${CONFIG.REPO_NAME}/contents/${CONFIG.FILE_PATH}`, { headers });
 
-        const imgSrc = p.img && p.img.startsWith('/') ? (API_BASE + p.img) : p.img;
-        if (imgSrc) {
-          document.getElementById('fImg').src = imgSrc;
-          document.getElementById('fImg').style.display = 'block';
-          document.getElementById('imgInfo').textContent = 'Imagen actual (sube una nueva para reemplazarla)';
-        } else {
-          document.getElementById('fImg').style.display = 'none';
-          document.getElementById('imgInfo').textContent = '';
+            if (!res.ok) throw new Error('No se pudo obtener el catálogo de GitHub');
+
+            const data = await res.json();
+            ghSha = data.sha;
+            // GitHub devuelve el contenido en base64
+            const content = decodeURIComponent(escape(atob(data.content.replace(/\s/g, ''))));
+            catalogo = JSON.parse(content);
+          }
+          mostrarTabla();
+          renderProducts();
+        } catch (e) {
+          console.error(e);
+          alert('Error al cargar productos: ' + e.message);
         }
       }
 
-      div.style.display = 'block';
-      document.getElementById('passDiv').style.display = 'none';
-      document.getElementById('fNombre').focus();
-    }
+      // ===== FORMULARIO DE PRODUCTO =====
+      function mostrarForm(action, id = null) {
+        const div = document.getElementById('formDiv');
+        const title = document.getElementById('formTitle');
 
-    function clearForm() {
-      ['fId', 'fNombre', 'fPrecio', 'fFile'].forEach(id => (document.getElementById(id).value = ''));
-      document.getElementById('fImg').src = '';
-      document.getElementById('fImg').style.display = 'none';
-      document.getElementById('imgInfo').textContent = '';
-      document.getElementById('fCat').value = 'Ropa de Mujer';
-      document.getElementById('fDisp').value = 'true';
-    }
+        if (!action) {
+          div.style.display = 'none';
+          clearForm();
+          return;
+        }
 
-    // Preview image desde archivo
-    document.getElementById('fFile').addEventListener('change', function (e) {
-      const file = e.target.files[0];
-      if (!file) {
+        if (action === 'add') {
+          editando = false;
+          title.textContent = 'Añadir Nuevo Producto';
+          clearForm();
+        } else if (action === 'edit' && id) {
+          editando = true;
+          title.textContent = 'Editar Producto';
+          const p = catalogo.find(x => x.id === id);
+          if (!p) return alert('Producto no encontrado');
+
+          document.getElementById('fId').value = p.id;
+          document.getElementById('fNombre').value = p.nombre;
+          document.getElementById('fPrecio').value = p.precio;
+          document.getElementById('fCat').value = p.categoria;
+          document.getElementById('fDisp').value = p.disponible ? 'true' : 'false';
+
+          const imgSrc = p.img && p.img.startsWith('/') ? (API_BASE + p.img) : p.img;
+          if (imgSrc) {
+            document.getElementById('fImg').src = imgSrc;
+            document.getElementById('fImg').style.display = 'block';
+            document.getElementById('imgInfo').textContent = 'Imagen actual (sube una nueva para reemplazarla)';
+          } else {
+            document.getElementById('fImg').style.display = 'none';
+            document.getElementById('imgInfo').textContent = '';
+          }
+        }
+
+        div.style.display = 'block';
+        document.getElementById('passDiv').style.display = 'none';
+        document.getElementById('fNombre').focus();
+      }
+
+      function clearForm() {
+        ['fId', 'fNombre', 'fPrecio', 'fFile'].forEach(id => (document.getElementById(id).value = ''));
+        document.getElementById('fImg').src = '';
         document.getElementById('fImg').style.display = 'none';
         document.getElementById('imgInfo').textContent = '';
-        return;
+        document.getElementById('fCat').value = 'Ropa de Mujer';
+        document.getElementById('fDisp').value = 'true';
       }
 
-      // Validar tipo de archivo
-      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
-      if (!allowedTypes.includes(file.type)) {
-        alert('Tipo de archivo no permitido. Solo imágenes: JPEG, PNG, GIF, WEBP');
-        this.value = '';
-        return;
-      }
-
-      // Validar tamaño (máximo 5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        alert('La imagen es muy grande. Máximo 5MB');
-        this.value = '';
-        return;
-      }
-
-      // Mostrar preview
-      const reader = new FileReader();
-      reader.onload = function (ev) {
-        document.getElementById('fImg').src = ev.target.result;
-        document.getElementById('fImg').style.display = 'block';
-        document.getElementById('imgInfo').textContent = `Imagen seleccionada: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
-      };
-      reader.readAsDataURL(file);
-    });
-
-    // ===== GUARDAR PRODUCTO =====
-    async function guardar() {
-      const id = editando ? Number(document.getElementById('fId').value) : undefined;
-      const nombre = document.getElementById('fNombre').value.trim();
-      const precio = Number(document.getElementById('fPrecio').value);
-      const categoria = document.getElementById('fCat').value;
-      const disponible = document.getElementById('fDisp').value === 'true';
-      let img = '';
-
-      if (!nombre || !precio) {
-        alert('El nombre y precio son obligatorios');
-        return;
-      }
-
-      const fileInput = document.getElementById('fFile').files[0];
-
-      try {
-        if (fileInput) {
-          // Validar tipo de archivo
-          const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
-          if (!allowedTypes.includes(fileInput.type)) {
-            alert('Tipo de archivo no permitido. Solo imágenes: JPEG, PNG, GIF, WEBP');
-            return;
-          }
-
-          // Validar tamaño (máximo 5MB)
-          if (fileInput.size > 5 * 1024 * 1024) {
-            alert('La imagen es muy grande. Máximo 5MB');
-            return;
-          }
-
-          img = await uploadImage(fileInput);
-        } else {
-          // Si no hay archivo nuevo, mantener la imagen existente (si se está editando)
-          if (id !== undefined) {
-            const productoExistente = catalogo.find(p => p.id === id);
-            if (productoExistente && productoExistente.img) {
-              img = productoExistente.img;
-            } else {
-              // Si no hay imagen existente, usar placeholder
-              img = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAwIiBoZWlnaHQ9IjQwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNjAwIiBoZWlnaHQ9IjQwMCIgZmlsbD0iI2Y1ZjFlOCIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiM4YzVlNDYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5TaW4gSW1hZ2VuPC90ZXh0Pjwvc3ZnPg==';
-            }
-          } else {
-            // Producto nuevo sin imagen: usar placeholder
-            img = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAwIiBoZWlnaHQ9IjQwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNjAwIiBoZWlnaHQ9IjQwMCIgZmlsbD0iI2Y1ZjFlOCIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiM4YzVlNDYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5TaW4gSW1hZ2VuPC90ZXh0Pjwvc3ZnPg==';
-          }
+      // Preview image desde archivo
+      document.getElementById('fFile').addEventListener('change', function (e) {
+        const file = e.target.files[0];
+        if (!file) {
+          document.getElementById('fImg').style.display = 'none';
+          document.getElementById('imgInfo').textContent = '';
+          return;
         }
 
-        await saveProduct(id, nombre, precio, categoria, disponible, img);
-      } catch (e) {
-        alert('Error: ' + e.message);
-      }
-    }
+        // Validar tipo de archivo
+        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+        if (!allowedTypes.includes(file.type)) {
+          alert('Tipo de archivo no permitido. Solo imágenes: JPEG, PNG, GIF, WEBP');
+          this.value = '';
+          return;
+        }
 
-    async function uploadImage(file) {
-      if (USE_LOCAL_JSON) {
-        // Modo local: usar data URL
-        return new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result);
-          reader.onerror = () => reject(new Error('Error leyendo imagen'));
-          reader.readAsDataURL(file);
-        });
-      } else {
-        // Modo API
+        // Validar tamaño (máximo 5MB)
+        if (file.size > 5 * 1024 * 1024) {
+          alert('La imagen es muy grande. Máximo 5MB');
+          this.value = '';
+          return;
+        }
+
+        // Mostrar preview
+        const reader = new FileReader();
+        reader.onload = function (ev) {
+          document.getElementById('fImg').src = ev.target.result;
+          document.getElementById('fImg').style.display = 'block';
+          document.getElementById('imgInfo').textContent = `Imagen seleccionada: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+        };
+        reader.readAsDataURL(file);
+      });
+
+      // ===== GUARDAR PRODUCTO =====
+      async function guardar() {
+        const id = editando ? Number(document.getElementById('fId').value) : undefined;
+        const nombre = document.getElementById('fNombre').value.trim();
+        const precio = Number(document.getElementById('fPrecio').value);
+        const categoria = document.getElementById('fCat').value;
+        const disponible = document.getElementById('fDisp').value === 'true';
+        let img = '';
+
+        if (!nombre || !precio) {
+          alert('El nombre y precio son obligatorios');
+          return;
+        }
+
+        const fileInput = document.getElementById('fFile').files[0];
+
+        try {
+          if (fileInput) {
+            // Validar tipo de archivo
+            const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+            if (!allowedTypes.includes(fileInput.type)) {
+              alert('Tipo de archivo no permitido. Solo imágenes: JPEG, PNG, GIF, WEBP');
+              return;
+            }
+
+            // Validar tamaño (máximo 5MB)
+            if (fileInput.size > 5 * 1024 * 1024) {
+              alert('La imagen es muy grande. Máximo 5MB');
+              return;
+            }
+
+            img = await uploadImage(fileInput);
+          } else {
+            // Si no hay archivo nuevo, mantener la imagen existente (si se está editando)
+            if (id !== undefined) {
+              const productoExistente = catalogo.find(p => p.id === id);
+              if (productoExistente && productoExistente.img) {
+                img = productoExistente.img;
+              } else {
+                // Si no hay imagen existente, usar placeholder
+                img = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAwIiBoZWlnaHQ9IjQwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNjAwIiBoZWlnaHQ9IjQwMCIgZmlsbD0iI2Y1ZjFlOCIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiM4YzVlNDYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5TaW4gSW1hZ2VuPC90ZXh0Pjwvc3ZnPg==';
+              }
+            } else {
+              // Producto nuevo sin imagen: usar placeholder
+              img = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAwIiBoZWlnaHQ9IjQwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNjAwIiBoZWlnaHQ9IjQwMCIgZmlsbD0iI2Y1ZjFlOCIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiM4YzVlNDYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5TaW4gSW1hZ2VuPC90ZXh0Pjwvc3ZnPg==';
+            }
+          }
+
+          await saveProduct(id, nombre, precio, categoria, disponible, img);
+        } catch (e) {
+          alert('Error: ' + e.message);
+        }
+      }
+
+      async function uploadImage(file) {
+        alert('La subida directa de imágenes no está disponible en el modo GitHub. Por favor, usa una URL de imagen externa o sube la imagen al repositorio manualmente y usa su ruta.');
+        return '';
+      }
+
+      // ===== GUARDAR CATÁLOGO COMPLETO EN GITHUB =====
+      async function saveToGitHub() {
+        if (IS_LOCAL) {
+          localStorage.setItem('localCatalog', JSON.stringify(catalogo));
+          alert('Cambios guardados localmente. Súbelos a GitHub para que sean públicos.');
+          return;
+        }
+
         const token = getToken();
-        if (!token) throw new Error('Debes iniciar sesión para subir imágenes');
+        if (!token) return alert('Debes iniciar sesión con tu Token');
 
-        const fd = new FormData();
-        fd.append('image', file);
+        const content = btoa(unescape(encodeURIComponent(JSON.stringify(catalogo, null, 2))));
 
-        const res = await fetch(API_BASE + '/upload-image', {
-          method: 'POST',
-          headers: { 'Authorization': 'Bearer ' + token },
-          body: fd
-        });
+        const config = getConfig();
 
-        if (!res.ok) throw new Error('Error subiendo imagen');
-        const data = await res.json();
-        return API_BASE + data.url;
-      }
-    }
+        try {
+          const res = await fetch(`${config.API_URL}/repos/${config.REPO_OWNER}/${config.REPO_NAME}/contents/${config.FILE_PATH}`, {
+            method: 'PUT',
+            headers: {
+              'Authorization': `token ${token}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              message: 'Actualizar catálogo desde el panel administrativo',
+              content: content,
+              sha: ghSha
+            })
+          });
 
-    // ===== GUARDAR CATÁLOGO COMPLETO EN GITHUB =====
-    async function saveToGitHub() {
-      if (IS_LOCAL) {
-        localStorage.setItem('localCatalog', JSON.stringify(catalogo));
-        alert('Cambios guardados localmente. Súbelos a GitHub para que sean públicos.');
-        return;
-      }
+          if (!res.ok) throw new Error('Error al sincronizar con GitHub');
 
-      const token = getToken();
-      if (!token) return alert('Debes iniciar sesión con tu Token');
-
-      const content = btoa(unescape(encodeURIComponent(JSON.stringify(catalogo, null, 2))));
-
-      const config = getConfig();
-
-      try {
-        const res = await fetch(`${config.API_URL}/repos/${config.REPO_OWNER}/${config.REPO_NAME}/contents/${config.FILE_PATH}`, {
-          method: 'PUT',
-          headers: {
-            'Authorization': `token ${token}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            message: 'Actualizar catálogo desde el panel administrativo',
-            content: content,
-            sha: ghSha
-          })
-        });
-
-        if (!res.ok) throw new Error('Error al sincronizar con GitHub');
-
-        const data = await res.json();
-        ghSha = data.content.sha; // Actualizar el SHA para la próxima edición
-        alert('✓ ¡Tienda actualizada exitosamente!');
-      } catch (e) {
-        alert('Error al guardar en GitHub: ' + e.message);
-      }
-    }
-
-    async function saveProduct(id, nombre, precio, categoria, disponible, img) {
-      const payload = { nombre, precio, categoria, disponible, img, active: true };
-
-      if (id !== undefined) {
-        const index = catalogo.findIndex(p => p.id === id);
-        if (index !== -1) catalogo[index] = { ...catalogo[index], ...payload, id };
-      } else {
-        payload.id = Date.now();
-        catalogo.push(payload);
+          const data = await res.json();
+          ghSha = data.content.sha; // Actualizar el SHA para la próxima edición
+          alert('✓ ¡Tienda actualizada exitosamente!');
+        } catch (e) {
+          alert('Error al guardar en GitHub: ' + e.message);
+        }
       }
 
-      await saveToGitHub();
-      mostrarForm(null);
-      mostrarTabla();
-      renderProducts();
-    }
+      async function saveProduct(id, nombre, precio, categoria, disponible, img) {
+        const payload = { nombre, precio, categoria, disponible, img, active: true };
 
+        if (id !== undefined) {
+          const index = catalogo.findIndex(p => p.id === id);
+          if (index !== -1) catalogo[index] = { ...catalogo[index], ...payload, id };
+        } else {
+          payload.id = Date.now();
+          catalogo.push(payload);
+        }
 
-
-    // ===== ELIMINAR PRODUCTO =====
-    async function deleteProduct(id) {
-      const product = catalogo.find(p => p.id === id);
-      const productName = product ? product.nombre : 'este producto';
-
-      if (!confirm(`¿Estás seguro de eliminar "${productName}"?`)) return;
-
-      catalogo = catalogo.filter(p => p.id !== id);
-      await saveToGitHub();
-      mostrarTabla();
-      renderProducts();
-    }
-
-    // ===== MOSTRAR TABLA DE PRODUCTOS =====
-    function mostrarTabla() {
-      const tbody = document.getElementById('listaProd');
-      tbody.innerHTML = '';
-
-      if (!catalogo || !catalogo.length) {
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #999;">No hay productos cargados</td></tr>';
-        return;
+        await saveToGitHub();
+        mostrarForm(null);
+        mostrarTabla();
+        renderProducts();
       }
 
-      catalogo.forEach(p => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
+
+
+      // ===== ELIMINAR PRODUCTO =====
+      async function deleteProduct(id) {
+        const product = catalogo.find(p => p.id === id);
+        const productName = product ? product.nombre : 'este producto';
+
+        if (!confirm(`¿Estás seguro de eliminar "${productName}"?`)) return;
+
+        catalogo = catalogo.filter(p => p.id !== id);
+        await saveToGitHub();
+        mostrarTabla();
+        renderProducts();
+      }
+
+      // ===== MOSTRAR TABLA DE PRODUCTOS =====
+      function mostrarTabla() {
+        const tbody = document.getElementById('listaProd');
+        tbody.innerHTML = '';
+
+        if (!catalogo || !catalogo.length) {
+          tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #999;">No hay productos cargados</td></tr>';
+          return;
+        }
+
+        catalogo.forEach(p => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
           <td><img class="mini" src="${p.img}" onerror="this.src='https://via.placeholder.com/60'"></td>
           <td><strong>${p.nombre}</strong></td>
           <td>${Number(p.precio).toFixed(2)} CUP</td>
@@ -870,258 +811,258 @@
             <button class="inline" onclick="toggleActive(${p.id}, ${p.active === false})">${p.active === false ? '🔓 Activar' : '🔒 Desactivar'}</button>
           </td>
         `;
-        tbody.appendChild(tr);
-      });
-    }
-
-    async function toggleActive(id, newState) {
-      const product = catalogo.find(p => p.id === id);
-      if (product) {
-        product.active = newState;
-        await saveToGitHub();
-        mostrarTabla();
-        renderProducts();
-      }
-    }
-
-    // ===== RENDER PRODUCTOS (Lista pública) =====
-    function renderProducts() {
-      const container = document.getElementById('productList');
-      container.innerHTML = '';
-
-      if (!catalogo || !catalogo.length) {
-        container.innerHTML = '<p style="color: #999; text-align: center;">No hay productos disponibles</p>';
-        return;
+          tbody.appendChild(tr);
+        });
       }
 
-      catalogo.forEach(p => {
-        const div = document.createElement('div');
-        div.className = 'product-item';
+      async function toggleActive(id, newState) {
+        const product = catalogo.find(p => p.id === id);
+        if (product) {
+          product.active = newState;
+          await saveToGitHub();
+          mostrarTabla();
+          renderProducts();
+        }
+      }
 
-        const img = document.createElement('img');
-        img.className = 'mini';
-        img.src = p.img;
-        img.onerror = () => (img.src = 'https://via.placeholder.com/60');
+      // ===== RENDER PRODUCTOS (Lista pública) =====
+      function renderProducts() {
+        const container = document.getElementById('productList');
+        container.innerHTML = '';
 
-        const info = document.createElement('div');
-        info.className = 'product-info';
-        info.innerHTML = `
+        if (!catalogo || !catalogo.length) {
+          container.innerHTML = '<p style="color: #999; text-align: center;">No hay productos disponibles</p>';
+          return;
+        }
+
+        catalogo.forEach(p => {
+          const div = document.createElement('div');
+          div.className = 'product-item';
+
+          const img = document.createElement('img');
+          img.className = 'mini';
+          img.src = p.img;
+          img.onerror = () => (img.src = 'https://via.placeholder.com/60');
+
+          const info = document.createElement('div');
+          info.className = 'product-info';
+          info.innerHTML = `
           <strong>${p.nombre}</strong>
           <small>${p.categoria} — ${p.precio} CUP — ${p.disponible ? '✓ Disponible' : '✗ Agotado'}</small>
         `;
 
-        const actions = document.createElement('div');
-        actions.style.display = 'flex';
-        actions.style.gap = '0.5rem';
+          const actions = document.createElement('div');
+          actions.style.display = 'flex';
+          actions.style.gap = '0.5rem';
 
-        const editBtn = document.createElement('button');
-        editBtn.className = 'inline';
-        editBtn.textContent = '✏️ Editar';
-        editBtn.onclick = () => mostrarForm('edit', p.id);
+          const editBtn = document.createElement('button');
+          editBtn.className = 'inline';
+          editBtn.textContent = '✏️ Editar';
+          editBtn.onclick = () => mostrarForm('edit', p.id);
 
-        const delBtn = document.createElement('button');
-        delBtn.className = 'inline';
-        delBtn.style.borderColor = '#ef4444';
-        delBtn.style.color = '#ef4444';
-        delBtn.textContent = '🗑️ Borrar';
-        delBtn.onclick = () => deleteProduct(p.id);
+          const delBtn = document.createElement('button');
+          delBtn.className = 'inline';
+          delBtn.style.borderColor = '#ef4444';
+          delBtn.style.color = '#ef4444';
+          delBtn.textContent = '🗑️ Borrar';
+          delBtn.onclick = () => deleteProduct(p.id);
 
-        actions.appendChild(editBtn);
-        actions.appendChild(delBtn);
+          actions.appendChild(editBtn);
+          actions.appendChild(delBtn);
 
-        div.appendChild(img);
-        div.appendChild(info);
-        div.appendChild(actions);
-        container.appendChild(div);
-      });
-    }
+          div.appendChild(img);
+          div.appendChild(info);
+          div.appendChild(actions);
+          container.appendChild(div);
+        });
+      }
 
-    // ===== IMPORTAR EXCEL =====
-    async function cargarExcel() {
-      const input = document.getElementById('excelFile');
-      if (!input.files.length) return alert('Selecciona un archivo Excel');
+      // ===== IMPORTAR EXCEL =====
+      async function cargarExcel() {
+        const input = document.getElementById('excelFile');
+        if (!input.files.length) return alert('Selecciona un archivo Excel');
 
-      const file = input.files[0];
-      const reader = new FileReader();
+        const file = input.files[0];
+        const reader = new FileReader();
 
-      reader.onload = async function (e) {
-        try {
-          const data = new Uint8Array(e.target.result);
-          const workbook = XLSX.read(data, { type: 'array' });
-          const sheet = workbook.Sheets[workbook.SheetNames[0]];
-          const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+        reader.onload = async function (e) {
+          try {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const sheet = workbook.Sheets[workbook.SheetNames[0]];
+            const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
 
-          if (rows.length < 2) return alert('El archivo debe tener encabezado + al menos 1 producto');
+            if (rows.length < 2) return alert('El archivo debe tener encabezado + al menos 1 producto');
 
-          // Formato Excel esperado: [Categoría, Nombre, Precio, Imagen (opcional), Disponible (opcional)]
-          const products = [];
-          let skipped = 0;
+            // Formato Excel esperado: [Categoría, Nombre, Precio, Imagen (opcional), Disponible (opcional)]
+            const products = [];
+            let skipped = 0;
 
-          // Función para obtener imagen placeholder estable
-          function getPlaceholderImage() {
-            // Imagen SVG base64 como placeholder estable
-            return 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAwIiBoZWlnaHQ9IjQwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNjAwIiBoZWlnaHQ9IjQwMCIgZmlsbD0iI2Y1ZjFlOCIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiM4YzVlNDYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5TaW4gSW1hZ2VuPC90ZXh0Pjwvc3ZnPg==';
-          }
-
-          for (let i = 1; i < rows.length; i++) {
-            const row = rows[i];
-            const categoria = row[0];
-            const nombre = row[1];
-            const precio = row[2];
-            const imgUrl = row[3]; // Columna opcional de imagen
-            const disponible = row[4] !== undefined ? (String(row[4]).toLowerCase() === 'si' || String(row[4]).toLowerCase() === 'sí' || row[4] === true) : true;
-
-            if (!nombre || !precio) {
-              skipped++;
-              continue;
+            // Función para obtener imagen placeholder estable
+            function getPlaceholderImage() {
+              // Imagen SVG base64 como placeholder estable
+              return 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAwIiBoZWlnaHQ9IjQwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNjAwIiBoZWlnaHQ9IjQwMCIgZmlsbD0iI2Y1ZjFlOCIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiM4YzVlNDYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5TaW4gSW1hZ2VuPC90ZXh0Pjwvc3ZnPg==';
             }
 
-            const id = Date.now() + i + Math.random(); // ID único
-            const cat = categoria ? String(categoria).trim() : 'Ropa de Mujer';
-            const nm = String(nombre).trim();
-            const pr = parseFloat(precio) || 0;
+            for (let i = 1; i < rows.length; i++) {
+              const row = rows[i];
+              const categoria = row[0];
+              const nombre = row[1];
+              const precio = row[2];
+              const imgUrl = row[3]; // Columna opcional de imagen
+              const disponible = row[4] !== undefined ? (String(row[4]).toLowerCase() === 'si' || String(row[4]).toLowerCase() === 'sí' || row[4] === true) : true;
 
-            // Manejar imagen: usar la del Excel si existe y es válida, sino usar placeholder estable
-            let img = '';
-            if (imgUrl && typeof imgUrl === 'string' && imgUrl.trim().length > 0) {
-              const urlTrimmed = imgUrl.trim();
-              // Validar que sea una URL válida
-              if (urlTrimmed.startsWith('http://') || urlTrimmed.startsWith('https://') || urlTrimmed.startsWith('/images/') || urlTrimmed.startsWith('data:')) {
-                img = urlTrimmed;
+              if (!nombre || !precio) {
+                skipped++;
+                continue;
+              }
+
+              const id = Date.now() + i + Math.random(); // ID único
+              const cat = categoria ? String(categoria).trim() : 'Ropa de Mujer';
+              const nm = String(nombre).trim();
+              const pr = parseFloat(precio) || 0;
+
+              // Manejar imagen: usar la del Excel si existe y es válida, sino usar placeholder estable
+              let img = '';
+              if (imgUrl && typeof imgUrl === 'string' && imgUrl.trim().length > 0) {
+                const urlTrimmed = imgUrl.trim();
+                // Validar que sea una URL válida
+                if (urlTrimmed.startsWith('http://') || urlTrimmed.startsWith('https://') || urlTrimmed.startsWith('/images/') || urlTrimmed.startsWith('data:')) {
+                  img = urlTrimmed;
+                } else {
+                  // Si no es una URL válida, usar placeholder
+                  img = getPlaceholderImage();
+                }
               } else {
-                // Si no es una URL válida, usar placeholder
+                // Usar imagen placeholder estable
                 img = getPlaceholderImage();
               }
-            } else {
-              // Usar imagen placeholder estable
-              img = getPlaceholderImage();
+
+              products.push({ id, nombre: nm, precio: pr, categoria: cat, disponible, img, active: true });
             }
 
-            products.push({ id, nombre: nm, precio: pr, categoria: cat, disponible, img, active: true });
+            if (products.length === 0) {
+              alert(`No se encontraron productos válidos en el archivo.${skipped > 0 ? ` Se omitieron ${skipped} productos.` : ''}\n\nFormato esperado:\nColumna A: Categoría\nColumna B: Nombre\nColumna C: Precio\nColumna D: URL de Imagen (opcional)\nColumna E: Disponible - Sí/No (opcional)`);
+              return;
+            }
+
+            const token = getToken();
+            if (!token) return alert('Debes iniciar sesión para importar productos');
+
+            const res = await fetch(API_BASE + '/import', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token
+              },
+              body: JSON.stringify(products)
+            });
+
+            if (!res.ok) {
+              const errorText = await res.text();
+              throw new Error(errorText);
+            }
+            const result = await res.json();
+
+            alert(`✓ Importación completada\nProductos cargados: ${result.count}${result.rejected > 0 ? `\nRechazados: ${result.rejected}` : ''}${skipped > 0 ? `\nOmitidos: ${skipped}` : ''}`);
+            input.value = '';
+            await fetchProducts();
+          } catch (e) {
+            alert('Error al importar: ' + e.message);
           }
+        };
 
-          if (products.length === 0) {
-            alert(`No se encontraron productos válidos en el archivo.${skipped > 0 ? ` Se omitieron ${skipped} productos.` : ''}\n\nFormato esperado:\nColumna A: Categoría\nColumna B: Nombre\nColumna C: Precio\nColumna D: URL de Imagen (opcional)\nColumna E: Disponible - Sí/No (opcional)`);
-            return;
-          }
+        reader.readAsArrayBuffer(file);
+      }
 
-          const token = getToken();
-          if (!token) return alert('Debes iniciar sesión para importar productos');
+      // ===== EXPORTAR CATÁLOGO =====
+      function exportarCatalogo(formato = 'excel') {
+        if (!catalogo || catalogo.length === 0) {
+          alert('No hay productos para exportar');
+          return;
+        }
 
-          const res = await fetch(API_BASE + '/import', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': 'Bearer ' + token
-            },
-            body: JSON.stringify(products)
+        if (formato === 'json') {
+          const blob = new Blob([JSON.stringify(catalogo, null, 2)], { type: 'application/json' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'catalogo_bazar.json';
+          a.click();
+          URL.revokeObjectURL(url);
+        } else if (formato === 'excel') {
+          const datos = [['Categoría', 'Nombre', 'Precio (CUP)', 'Imagen (URL)', 'Disponible']];
+          catalogo.forEach(p => {
+            datos.push([
+              p.categoria || '',
+              p.nombre || '',
+              p.precio || 0,
+              p.img || '', // URL de imagen
+              p.disponible ? 'Sí' : 'No'
+            ]);
           });
 
-          if (!res.ok) {
-            const errorText = await res.text();
-            throw new Error(errorText);
-          }
-          const result = await res.json();
-
-          alert(`✓ Importación completada\nProductos cargados: ${result.count}${result.rejected > 0 ? `\nRechazados: ${result.rejected}` : ''}${skipped > 0 ? `\nOmitidos: ${skipped}` : ''}`);
-          input.value = '';
-          await fetchProducts();
-        } catch (e) {
-          alert('Error al importar: ' + e.message);
+          const hoja = XLSX.utils.aoa_to_sheet(datos);
+          hoja['!cols'] = [
+            { wch: 20 }, // Categoría
+            { wch: 30 }, // Nombre
+            { wch: 15 }, // Precio
+            { wch: 50 }, // Imagen
+            { wch: 12 }  // Disponible
+          ];
+          const libro = XLSX.utils.book_new();
+          XLSX.utils.book_append_sheet(libro, hoja, 'Productos');
+          XLSX.writeFile(libro, 'catalogo_bazar.xlsx');
         }
-      };
 
-      reader.readAsArrayBuffer(file);
-    }
-
-    // ===== EXPORTAR CATÁLOGO =====
-    function exportarCatalogo(formato = 'excel') {
-      if (!catalogo || catalogo.length === 0) {
-        alert('No hay productos para exportar');
-        return;
+        alert('✓ Catálogo exportado correctamente');
       }
 
-      if (formato === 'json') {
-        const blob = new Blob([JSON.stringify(catalogo, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'catalogo_bazar.json';
-        a.click();
-        URL.revokeObjectURL(url);
-      } else if (formato === 'excel') {
-        const datos = [['Categoría', 'Nombre', 'Precio (CUP)', 'Imagen (URL)', 'Disponible']];
-        catalogo.forEach(p => {
-          datos.push([
-            p.categoria || '',
-            p.nombre || '',
-            p.precio || 0,
-            p.img || '', // URL de imagen
-            p.disponible ? 'Sí' : 'No'
-          ]);
-        });
-
-        const hoja = XLSX.utils.aoa_to_sheet(datos);
-        hoja['!cols'] = [
-          { wch: 20 }, // Categoría
-          { wch: 30 }, // Nombre
-          { wch: 15 }, // Precio
-          { wch: 50 }, // Imagen
-          { wch: 12 }  // Disponible
-        ];
-        const libro = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(libro, hoja, 'Productos');
-        XLSX.writeFile(libro, 'catalogo_bazar.xlsx');
-      }
-
-      alert('✓ Catálogo exportado correctamente');
-    }
-
-    // ===== INICIALIZACIÓN =====
-    // Verificar autenticación al cargar la página
-    async function verificarAutenticacion() {
-      const token = getToken();
-      if (!token) {
-        // No hay token, mostrar login
-        updateAuthUI();
-        return;
-      }
-
-      // Hay token, validarlo con GitHub
-      try {
-        const config = getConfig();
-        const res = await fetch(`${config.API_URL}/repos/${config.REPO_OWNER}/${config.REPO_NAME}`, {
-          headers: { 'Authorization': `token ${token}` }
-        });
-
-        if (res.ok) {
-          // Token válido, mostrar panel de administración
+      // ===== INICIALIZACIÓN =====
+      // Verificar autenticación al cargar la página
+      async function verificarAutenticacion() {
+        const token = getToken();
+        if (!token) {
+          // No hay token, mostrar login
           updateAuthUI();
-          await fetchProducts();
-        } else {
-          // Token inválido o expirado, limpiar y mostrar login
-          setToken(null);
-          updateAuthUI();
-          // No mostrar alert intrusivo al cargar, solo pedir login
+          return;
         }
-      } catch (e) {
-        // Error de conexión, pero si hay token guardado, intentar usarlo
-        // (útil si el servidor está temporalmente fuera de línea)
-        console.warn('Error verificando token:', e);
-        updateAuthUI();
-        // Intentar cargar productos de todas formas
-        if (token) {
-          try {
+
+        // Hay token, validarlo con GitHub
+        try {
+          const config = getConfig();
+          const res = await fetch(`${config.API_URL}/repos/${config.REPO_OWNER}/${config.REPO_NAME}`, {
+            headers: { 'Authorization': `token ${token}` }
+          });
+
+          if (res.ok) {
+            // Token válido, mostrar panel de administración
+            updateAuthUI();
             await fetchProducts();
-          } catch (err) {
-            console.error('No se pudieron cargar productos:', err);
+          } else {
+            // Token inválido o expirado, limpiar y mostrar login
+            setToken(null);
+            updateAuthUI();
+            // No mostrar alert intrusivo al cargar, solo pedir login
+          }
+        } catch (e) {
+          // Error de conexión, pero si hay token guardado, intentar usarlo
+          // (útil si el servidor está temporalmente fuera de línea)
+          console.warn('Error verificando token:', e);
+          updateAuthUI();
+          // Intentar cargar productos de todas formas
+          if (token) {
+            try {
+              await fetchProducts();
+            } catch (err) {
+              console.error('No se pudieron cargar productos:', err);
+            }
           }
         }
       }
-    }
 
-    // Ejecutar verificación al cargar
-    verificarAutenticacion();
+      // Ejecutar verificación al cargar
+      verificarAutenticacion();
   </script>
 </body>
 
