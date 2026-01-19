@@ -397,49 +397,28 @@
     let editando = false;
     let ghSha = null; // SHA del archivo para actualizar en GitHub
 
-    // Si se desea mantener sesión entre recargas, poner true.
-    // Por seguridad y para forzar el login manual, dejamos false por defecto.
-    const PERSIST_SESSION = false;
-
     // ===== TOKEN HELPERS =====
     function getToken() {
-      // Prefer session token (ephemeral) over persistent local token
       const s = sessionStorage.getItem('romeroToken');
-      if (s) {
-        try { console.debug('[TOKEN] getToken -> sessionStorage (len=' + s.length + ')'); } catch (e) { }
-        return s;
-      }
-      const l = localStorage.getItem('romeroToken');
-      try { console.debug('[TOKEN] getToken -> localStorage (len=' + (l ? l.length : 0) + ')'); } catch (e) { }
-      return l;
+      if (s) return s;
+      return localStorage.getItem('romeroToken');
     }
 
     function setToken(t, persist = false) {
-      // persist=true -> localStorage (remember me)
-      // persist=false -> sessionStorage (only for this tab/session)
       if (t) {
-        try { console.debug('[TOKEN] setToken -> storing token (persist=' + !!persist + ', len=' + t.length + ')'); } catch (e) { }
-        if (persist) {
-          localStorage.setItem('romeroToken', t);
-        } else {
-          sessionStorage.setItem('romeroToken', t);
-        }
+        if (persist) localStorage.setItem('romeroToken', t);
+        else sessionStorage.setItem('romeroToken', t);
       } else {
-        // clear both
-        try { console.debug('[TOKEN] setToken -> clearing token from storage'); } catch (e) { }
-        try { localStorage.removeItem('romeroToken'); } catch (e) { }
-        try { sessionStorage.removeItem('romeroToken'); } catch (e) { }
+        localStorage.removeItem('romeroToken');
+        sessionStorage.removeItem('romeroToken');
       }
     }
 
     // ===== UI UPDATES =====
     function updateAuthUI() {
       if (IS_LOCAL) {
-        // Modo local: sin autenticación, mostrar directamente
-        const loginScreen = document.getElementById('loginScreen');
-        const mainContent = document.getElementById('mainContent');
-        if (loginScreen) loginScreen.style.display = 'none';
-        if (mainContent) mainContent.style.display = 'block';
+        document.getElementById('loginScreen').style.display = 'none';
+        document.getElementById('mainContent').style.display = 'block';
         document.getElementById('adminPanel').style.display = 'block';
         document.getElementById('productosTitle').style.display = 'block';
         return;
@@ -448,49 +427,23 @@
       const token = getToken();
       const isAuth = !!token;
 
-      // Actualizar estado de autenticación (en ambas ubicaciones)
-      const authStatusLogin = document.getElementById('authStatus');
-      const authStatusMain = document.getElementById('authStatusMain');
-      if (authStatusLogin) {
-        authStatusLogin.textContent = isAuth ? 'Autenticado ✓' : 'No autenticado';
-        authStatusLogin.classList.toggle('authenticated', isAuth);
-      }
-      if (authStatusMain) {
-        authStatusMain.textContent = isAuth ? 'Autenticado ✓' : 'No autenticado';
-        authStatusMain.classList.toggle('authenticated', isAuth);
-      }
+      document.getElementById('authStatus').textContent = isAuth ? 'Autenticado ✓' : 'No autenticado';
+      document.getElementById('authStatus').classList.toggle('authenticated', isAuth);
+      document.getElementById('authStatusMain').textContent = isAuth ? 'Autenticado ✓' : 'No autenticado';
+      document.getElementById('authStatusMain').classList.toggle('authenticated', isAuth);
 
-      // Mostrar/ocultar pantalla de login
-      const loginScreen = document.getElementById('loginScreen');
-      const mainContent = document.getElementById('mainContent');
-
-      if (isAuth) {
-        // Usuario autenticado: ocultar login, mostrar contenido
-        loginScreen.style.display = 'none';
-        mainContent.style.display = 'block';
-        document.getElementById('loginForm').style.display = 'none';
-        document.getElementById('logoutForm').style.display = 'block';
-        document.getElementById('adminPanel').style.display = 'block';
-        document.getElementById('productosTitle').style.display = 'block';
-      } else {
-        // Usuario no autenticado: mostrar login, ocultar contenido
-        loginScreen.style.display = 'flex';
-        mainContent.style.display = 'none';
-        document.getElementById('loginForm').style.display = 'block';
-        document.getElementById('logoutForm').style.display = 'none';
-        document.getElementById('adminPanel').style.display = 'none';
-        document.getElementById('productosTitle').style.display = 'none';
-      }
+      document.getElementById('loginScreen').style.display = isAuth ? 'none' : 'flex';
+      document.getElementById('mainContent').style.display = isAuth ? 'block' : 'none';
+      document.getElementById('loginForm').style.display = isAuth ? 'none' : 'block';
+      document.getElementById('logoutForm').style.display = isAuth ? 'block' : 'none';
+      document.getElementById('adminPanel').style.display = isAuth ? 'block' : 'none';
+      document.getElementById('productosTitle').style.display = isAuth ? 'block' : 'none';
     }
 
     // ===== AUTENTICACIÓN (GITHUB TOKEN) =====
     async function login() {
       const token = document.getElementById('password').value.trim();
-
-      if (!token) {
-        alert('Por favor ingresa tu Token de GitHub');
-        return;
-      }
+      if (!token) return alert('Por favor ingresa tu Token de GitHub');
 
       try {
         const config = getConfig();
@@ -504,7 +457,7 @@
         setToken(token, remember);
         updateAuthUI();
         document.getElementById('password').value = '';
-        alert('✓ Conexión con GitHub exitosa. Ahora puedes gestionar tus productos.');
+        alert('✓ Conexión con GitHub exitosa.');
         await fetchProducts();
       } catch (e) {
         alert('Error al conectar con GitHub: ' + e.message);
@@ -513,543 +466,215 @@
 
     function logout() {
       if (confirm('¿Deseas cerrar la sesión?')) {
-        // clear both session and local tokens
         setToken(null);
         updateAuthUI();
-        // No mostrar alert, solo cerrar sesión y mostrar login
       }
     }
 
-    // ===== CAMBIO DE CONTRASEÑA =====
-    function mostrarCambioPass() {
-      const div = document.getElementById('passDiv');
-      div.style.display = div.style.display === 'none' ? 'block' : 'none';
-      if (div.style.display === 'block') {
-        document.getElementById('passActual').focus();
-      }
-    }
-
-    async function changePassword() {
-      const oldPassword = document.getElementById('passActual').value;
-      const newPassword1 = document.getElementById('passNueva1').value;
-      const newPassword2 = document.getElementById('passNueva2').value;
-
-      function changePassword() {
-        alert('En la versión de GitHub, no hay contraseña. Usas tu Token de Acceso Personal.');
-        document.getElementById('passActual').value = '';
-        document.getElementById('passNueva1').value = '';
-        document.getElementById('passNueva2').value = '';
-        mostrarCambioPass();
-      }
-
-      // ===== CARGAR PRODUCTOS =====
-      async function fetchProducts() {
-        try {
-          if (IS_LOCAL) {
-            const res = await fetch('data/catalog.json');
-            if (!res.ok) throw new Error('No se pudo cargar catálogo local');
-            catalogo = await res.json();
-          } else {
-            const token = getToken();
-            const headers = token ? { 'Authorization': `token ${token}` } : {};
-
-            const res = await fetch(`${CONFIG.API_URL}/repos/${CONFIG.REPO_OWNER}/${CONFIG.REPO_NAME}/contents/${CONFIG.FILE_PATH}`, { headers });
-
-            if (!res.ok) throw new Error('No se pudo obtener el catálogo de GitHub');
-
-            const data = await res.json();
-            ghSha = data.sha;
-            // GitHub devuelve el contenido en base64
-            const content = decodeURIComponent(escape(atob(data.content.replace(/\s/g, ''))));
-            catalogo = JSON.parse(content);
-          }
-          mostrarTabla();
-          renderProducts();
-        } catch (e) {
-          console.error(e);
-          alert('Error al cargar productos: ' + e.message);
-        }
-      }
-
-      // ===== FORMULARIO DE PRODUCTO =====
-      function mostrarForm(action, id = null) {
-        const div = document.getElementById('formDiv');
-        const title = document.getElementById('formTitle');
-
-        if (!action) {
-          div.style.display = 'none';
-          clearForm();
-          return;
-        }
-
-        if (action === 'add') {
-          editando = false;
-          title.textContent = 'Añadir Nuevo Producto';
-          clearForm();
-        } else if (action === 'edit' && id) {
-          editando = true;
-          title.textContent = 'Editar Producto';
-          const p = catalogo.find(x => x.id === id);
-          if (!p) return alert('Producto no encontrado');
-
-          document.getElementById('fId').value = p.id;
-          document.getElementById('fNombre').value = p.nombre;
-          document.getElementById('fPrecio').value = p.precio;
-          document.getElementById('fCat').value = p.categoria;
-          document.getElementById('fDisp').value = p.disponible ? 'true' : 'false';
-
-          const imgSrc = p.img && p.img.startsWith('/') ? (API_BASE + p.img) : p.img;
-          if (imgSrc) {
-            document.getElementById('fImg').src = imgSrc;
-            document.getElementById('fImg').style.display = 'block';
-            document.getElementById('imgInfo').textContent = 'Imagen actual (sube una nueva para reemplazarla)';
-          } else {
-            document.getElementById('fImg').style.display = 'none';
-            document.getElementById('imgInfo').textContent = '';
-          }
-        }
-
-        div.style.display = 'block';
-        document.getElementById('passDiv').style.display = 'none';
-        document.getElementById('fNombre').focus();
-      }
-
-      function clearForm() {
-        ['fId', 'fNombre', 'fPrecio', 'fFile'].forEach(id => (document.getElementById(id).value = ''));
-        document.getElementById('fImg').src = '';
-        document.getElementById('fImg').style.display = 'none';
-        document.getElementById('imgInfo').textContent = '';
-        document.getElementById('fCat').value = 'Ropa de Mujer';
-        document.getElementById('fDisp').value = 'true';
-      }
-
-      // Preview image desde archivo
-      document.getElementById('fFile').addEventListener('change', function (e) {
-        const file = e.target.files[0];
-        if (!file) {
-          document.getElementById('fImg').style.display = 'none';
-          document.getElementById('imgInfo').textContent = '';
-          return;
-        }
-
-        // Validar tipo de archivo
-        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
-        if (!allowedTypes.includes(file.type)) {
-          alert('Tipo de archivo no permitido. Solo imágenes: JPEG, PNG, GIF, WEBP');
-          this.value = '';
-          return;
-        }
-
-        // Validar tamaño (máximo 5MB)
-        if (file.size > 5 * 1024 * 1024) {
-          alert('La imagen es muy grande. Máximo 5MB');
-          this.value = '';
-          return;
-        }
-
-        // Mostrar preview
-        const reader = new FileReader();
-        reader.onload = function (ev) {
-          document.getElementById('fImg').src = ev.target.result;
-          document.getElementById('fImg').style.display = 'block';
-          document.getElementById('imgInfo').textContent = `Imagen seleccionada: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
-        };
-        reader.readAsDataURL(file);
-      });
-
-      // ===== GUARDAR PRODUCTO =====
-      async function guardar() {
-        const id = editando ? Number(document.getElementById('fId').value) : undefined;
-        const nombre = document.getElementById('fNombre').value.trim();
-        const precio = Number(document.getElementById('fPrecio').value);
-        const categoria = document.getElementById('fCat').value;
-        const disponible = document.getElementById('fDisp').value === 'true';
-        let img = '';
-
-        if (!nombre || !precio) {
-          alert('El nombre y precio son obligatorios');
-          return;
-        }
-
-        const fileInput = document.getElementById('fFile').files[0];
-
-        try {
-          if (fileInput) {
-            // Validar tipo de archivo
-            const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
-            if (!allowedTypes.includes(fileInput.type)) {
-              alert('Tipo de archivo no permitido. Solo imágenes: JPEG, PNG, GIF, WEBP');
-              return;
-            }
-
-            // Validar tamaño (máximo 5MB)
-            if (fileInput.size > 5 * 1024 * 1024) {
-              alert('La imagen es muy grande. Máximo 5MB');
-              return;
-            }
-
-            img = await uploadImage(fileInput);
-          } else {
-            // Si no hay archivo nuevo, mantener la imagen existente (si se está editando)
-            if (id !== undefined) {
-              const productoExistente = catalogo.find(p => p.id === id);
-              if (productoExistente && productoExistente.img) {
-                img = productoExistente.img;
-              } else {
-                // Si no hay imagen existente, usar placeholder
-                img = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAwIiBoZWlnaHQ9IjQwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNjAwIiBoZWlnaHQ9IjQwMCIgZmlsbD0iI2Y1ZjFlOCIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiM4YzVlNDYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5TaW4gSW1hZ2VuPC90ZXh0Pjwvc3ZnPg==';
-              }
-            } else {
-              // Producto nuevo sin imagen: usar placeholder
-              img = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAwIiBoZWlnaHQ9IjQwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNjAwIiBoZWlnaHQ9IjQwMCIgZmlsbD0iI2Y1ZjFlOCIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiM4YzVlNDYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5TaW4gSW1hZ2VuPC90ZXh0Pjwvc3ZnPg==';
-            }
-          }
-
-          await saveProduct(id, nombre, precio, categoria, disponible, img);
-        } catch (e) {
-          alert('Error: ' + e.message);
-        }
-      }
-
-      async function uploadImage(file) {
-        alert('La subida directa de imágenes no está disponible en el modo GitHub. Por favor, usa una URL de imagen externa o sube la imagen al repositorio manualmente y usa su ruta.');
-        return '';
-      }
-
-      // ===== GUARDAR CATÁLOGO COMPLETO EN GITHUB =====
-      async function saveToGitHub() {
+    // ===== GESTIÓN DE PRODUCTOS =====
+    async function fetchProducts() {
+      try {
         if (IS_LOCAL) {
-          localStorage.setItem('localCatalog', JSON.stringify(catalogo));
-          alert('Cambios guardados localmente. Súbelos a GitHub para que sean públicos.');
-          return;
-        }
-
-        const token = getToken();
-        if (!token) return alert('Debes iniciar sesión con tu Token');
-
-        const content = btoa(unescape(encodeURIComponent(JSON.stringify(catalogo, null, 2))));
-
-        const config = getConfig();
-
-        try {
-          const res = await fetch(`${config.API_URL}/repos/${config.REPO_OWNER}/${config.REPO_NAME}/contents/${config.FILE_PATH}`, {
-            method: 'PUT',
-            headers: {
-              'Authorization': `token ${token}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              message: 'Actualizar catálogo desde el panel administrativo',
-              content: content,
-              sha: ghSha
-            })
-          });
-
-          if (!res.ok) throw new Error('Error al sincronizar con GitHub');
-
-          const data = await res.json();
-          ghSha = data.content.sha; // Actualizar el SHA para la próxima edición
-          alert('✓ ¡Tienda actualizada exitosamente!');
-        } catch (e) {
-          alert('Error al guardar en GitHub: ' + e.message);
-        }
-      }
-
-      async function saveProduct(id, nombre, precio, categoria, disponible, img) {
-        const payload = { nombre, precio, categoria, disponible, img, active: true };
-
-        if (id !== undefined) {
-          const index = catalogo.findIndex(p => p.id === id);
-          if (index !== -1) catalogo[index] = { ...catalogo[index], ...payload, id };
+          const res = await fetch('data/catalog.json');
+          catalogo = await res.json();
         } else {
-          payload.id = Date.now();
-          catalogo.push(payload);
+          const config = getConfig();
+          const token = getToken();
+          const headers = token ? { 'Authorization': `token ${token}` } : {};
+          const res = await fetch(`${config.API_URL}/repos/${config.REPO_OWNER}/${config.REPO_NAME}/contents/${config.FILE_PATH}`, { headers });
+          if (!res.ok) throw new Error('No se pudo obtener el catálogo');
+          const data = await res.json();
+          ghSha = data.sha;
+          const content = decodeURIComponent(escape(atob(data.content.replace(/\s/g, ''))));
+          catalogo = JSON.parse(content);
         }
-
-        await saveToGitHub();
-        mostrarForm(null);
         mostrarTabla();
         renderProducts();
+      } catch (e) {
+        console.error(e);
+        alert('Error al cargar productos: ' + e.message);
+      }
+    }
+
+    function mostrarForm(action, id = null) {
+      const div = document.getElementById('formDiv');
+      if (!action) { div.style.display = 'none'; return; }
+
+      div.style.display = 'block';
+      if (action === 'add') {
+        editando = false;
+        document.getElementById('formTitle').textContent = 'Añadir Nuevo Producto';
+        clearForm();
+      } else {
+        editando = true;
+        document.getElementById('formTitle').textContent = 'Editar Producto';
+        const p = catalogo.find(x => x.id === id);
+        document.getElementById('fId').value = p.id;
+        document.getElementById('fNombre').value = p.nombre;
+        document.getElementById('fPrecio').value = p.precio;
+        document.getElementById('fCat').value = p.categoria;
+        document.getElementById('fDisp').value = p.disponible ? 'true' : 'false';
+        document.getElementById('fImg').src = p.img;
+        document.getElementById('fImg').style.display = p.img ? 'block' : 'none';
+      }
+    }
+
+    function clearForm() {
+      ['fId', 'fNombre', 'fPrecio', 'fFile'].forEach(id => document.getElementById(id).value = '');
+      document.getElementById('fImg').src = '';
+      document.getElementById('fImg').style.display = 'none';
+    }
+
+    async function guardar() {
+      const id = editando ? Number(document.getElementById('fId').value) : undefined;
+      const nombre = document.getElementById('fNombre').value.trim();
+      const precio = Number(document.getElementById('fPrecio').value);
+      const categoria = document.getElementById('fCat').value;
+      const disponible = document.getElementById('fDisp').value === 'true';
+      const fileInput = document.getElementById('fFile').files[0];
+
+      let img = document.getElementById('fImg').src;
+
+      if (!nombre || !precio) return alert('Nombre y precio obligatorios');
+
+      if (fileInput) {
+        // En modo GitHub no subimos archivos, convertimos a Base64 para el JSON si es pequeño
+        // o pedimos URL. Por ahora mantenemos la lógica de no subida directa a repo.
+        alert('La subida de archivos directos no está soportada. Por favor usa una URL de imagen.');
+        return;
       }
 
-
-
-      // ===== ELIMINAR PRODUCTO =====
-      async function deleteProduct(id) {
-        const product = catalogo.find(p => p.id === id);
-        const productName = product ? product.nombre : 'este producto';
-
-        if (!confirm(`¿Estás seguro de eliminar "${productName}"?`)) return;
-
-        catalogo = catalogo.filter(p => p.id !== id);
-        await saveToGitHub();
-        mostrarTabla();
-        renderProducts();
+      const payload = { nombre, precio, categoria, disponible, img };
+      if (id !== undefined) {
+        const idx = catalogo.findIndex(p => p.id === id);
+        catalogo[idx] = { ...catalogo[idx], ...payload };
+      } else {
+        catalogo.push({ ...payload, id: Date.now(), active: true });
       }
 
-      // ===== MOSTRAR TABLA DE PRODUCTOS =====
-      function mostrarTabla() {
-        const tbody = document.getElementById('listaProd');
-        tbody.innerHTML = '';
+      await saveToGitHub();
+      mostrarForm(null);
+      mostrarTabla();
+      renderProducts();
+    }
 
-        if (!catalogo || !catalogo.length) {
-          tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #999;">No hay productos cargados</td></tr>';
-          return;
-        }
+    async function saveToGitHub() {
+      if (IS_LOCAL) return alert('Modo local: Cambios no sincronizados con GitHub');
+      const config = getConfig();
+      const token = getToken();
+      const content = btoa(unescape(encodeURIComponent(JSON.stringify(catalogo, null, 2))));
 
-        catalogo.forEach(p => {
-          const tr = document.createElement('tr');
-          tr.innerHTML = `
+      try {
+        const res = await fetch(`${config.API_URL}/repos/${config.REPO_OWNER}/${config.REPO_NAME}/contents/${config.FILE_PATH}`, {
+          method: 'PUT',
+          headers: { 'Authorization': `token ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: 'Update catalog', content, sha: ghSha })
+        });
+        if (!res.ok) throw new Error('Error al sincronizar');
+        const data = await res.json();
+        ghSha = data.content.sha;
+        alert('✓ Actualizado en GitHub');
+      } catch (e) {
+        alert('Error: ' + e.message);
+      }
+    }
+
+    async function deleteProduct(id) {
+      if (!confirm('¿Borrar producto?')) return;
+      catalogo = catalogo.filter(p => p.id !== id);
+      await saveToGitHub();
+      mostrarTabla();
+      renderProducts();
+    }
+
+    async function toggleActive(id, state) {
+      const p = catalogo.find(x => x.id === id);
+      if (p) { p.active = state; await saveToGitHub(); mostrarTabla(); renderProducts(); }
+    }
+
+    function mostrarTabla() {
+      const tbody = document.getElementById('listaProd');
+      tbody.innerHTML = '';
+      catalogo.forEach(p => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
           <td><img class="mini" src="${p.img}" onerror="this.src='https://via.placeholder.com/60'"></td>
-          <td><strong>${p.nombre}</strong></td>
-          <td>${Number(p.precio).toFixed(2)} CUP</td>
+          <td>${p.nombre}</td>
+          <td>${p.precio}</td>
           <td>${p.categoria}</td>
-          <td>${p.disponible ? '✓ Disponible' : '✗ Agotado'}${p.active === false ? ' (Inactivo)' : ''}</td>
+          <td>${p.disponible ? '✓' : '✗'}</td>
           <td>
-            <button class="inline" onclick="mostrarForm('edit', ${p.id})">✏️ Editar</button>
-            <button class="inline" style="border-color: #ef4444; color: #ef4444;" onclick="deleteProduct(${p.id})">🗑️ Borrar</button>
-            <button class="inline" onclick="toggleActive(${p.id}, ${p.active === false})">${p.active === false ? '🔓 Activar' : '🔒 Desactivar'}</button>
+            <button class="inline" onclick="mostrarForm('edit', ${p.id})">✏️</button>
+            <button class="inline" onclick="deleteProduct(${p.id})">🗑️</button>
+            <button class="inline" onclick="toggleActive(${p.id}, ${p.active === false})">${p.active === false ? '🔓' : '🔒'}</button>
           </td>
         `;
-          tbody.appendChild(tr);
+        tbody.appendChild(tr);
+      });
+    }
+
+    function renderProducts() {
+      const container = document.getElementById('productList');
+      container.innerHTML = '';
+      catalogo.forEach(p => {
+        const div = document.createElement('div');
+        div.className = 'product-item';
+        div.innerHTML = `<img class="mini" src="${p.img}"> <div class="product-info"><strong>${p.nombre}</strong><small>${p.precio} CUP</small></div>`;
+        container.appendChild(div);
+      });
+    }
+
+    // ===== EXCEL / IMPORT =====
+    async function cargarExcel() {
+      const input = document.getElementById('excelFile');
+      const file = input.files[0];
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        const workbook = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(sheet);
+        const products = rows.map(r => ({
+          id: Date.now() + Math.random(),
+          nombre: r.Nombre || r.nombre,
+          precio: parseFloat(r.Precio || r.precio || 0),
+          categoria: r.Categoría || r.categoria || 'General',
+          img: r.Imagen || r.img || '',
+          disponible: true, active: true
+        }));
+        catalogo = [...catalogo, ...products];
+        await saveToGitHub();
+        mostrarTabla();
+        renderProducts();
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    function exportarCatalogo(fmt) {
+      const blob = new Blob([JSON.stringify(catalogo, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `catalogo.${fmt}`;
+      a.click();
+    }
+
+    function mostrarCambioPass() { alert('Usa el Token de GitHub para administrar.'); }
+    function changePassword() { mostrarCambioPass(); }
+
+    async function verificarAutenticacion() {
+      const token = getToken();
+      if (!token) { updateAuthUI(); return; }
+      try {
+        const config = getConfig();
+        const res = await fetch(`${config.API_URL}/repos/${config.REPO_OWNER}/${config.REPO_NAME}`, {
+          headers: { 'Authorization': `token ${token}` }
         });
-      }
+        if (res.ok) { updateAuthUI(); await fetchProducts(); }
+        else { setToken(null); updateAuthUI(); }
+      } catch (e) { updateAuthUI(); }
+    }
 
-      async function toggleActive(id, newState) {
-        const product = catalogo.find(p => p.id === id);
-        if (product) {
-          product.active = newState;
-          await saveToGitHub();
-          mostrarTabla();
-          renderProducts();
-        }
-      }
-
-      // ===== RENDER PRODUCTOS (Lista pública) =====
-      function renderProducts() {
-        const container = document.getElementById('productList');
-        container.innerHTML = '';
-
-        if (!catalogo || !catalogo.length) {
-          container.innerHTML = '<p style="color: #999; text-align: center;">No hay productos disponibles</p>';
-          return;
-        }
-
-        catalogo.forEach(p => {
-          const div = document.createElement('div');
-          div.className = 'product-item';
-
-          const img = document.createElement('img');
-          img.className = 'mini';
-          img.src = p.img;
-          img.onerror = () => (img.src = 'https://via.placeholder.com/60');
-
-          const info = document.createElement('div');
-          info.className = 'product-info';
-          info.innerHTML = `
-          <strong>${p.nombre}</strong>
-          <small>${p.categoria} — ${p.precio} CUP — ${p.disponible ? '✓ Disponible' : '✗ Agotado'}</small>
-        `;
-
-          const actions = document.createElement('div');
-          actions.style.display = 'flex';
-          actions.style.gap = '0.5rem';
-
-          const editBtn = document.createElement('button');
-          editBtn.className = 'inline';
-          editBtn.textContent = '✏️ Editar';
-          editBtn.onclick = () => mostrarForm('edit', p.id);
-
-          const delBtn = document.createElement('button');
-          delBtn.className = 'inline';
-          delBtn.style.borderColor = '#ef4444';
-          delBtn.style.color = '#ef4444';
-          delBtn.textContent = '🗑️ Borrar';
-          delBtn.onclick = () => deleteProduct(p.id);
-
-          actions.appendChild(editBtn);
-          actions.appendChild(delBtn);
-
-          div.appendChild(img);
-          div.appendChild(info);
-          div.appendChild(actions);
-          container.appendChild(div);
-        });
-      }
-
-      // ===== IMPORTAR EXCEL =====
-      async function cargarExcel() {
-        const input = document.getElementById('excelFile');
-        if (!input.files.length) return alert('Selecciona un archivo Excel');
-
-        const file = input.files[0];
-        const reader = new FileReader();
-
-        reader.onload = async function (e) {
-          try {
-            const data = new Uint8Array(e.target.result);
-            const workbook = XLSX.read(data, { type: 'array' });
-            const sheet = workbook.Sheets[workbook.SheetNames[0]];
-            const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
-
-            if (rows.length < 2) return alert('El archivo debe tener encabezado + al menos 1 producto');
-
-            // Formato Excel esperado: [Categoría, Nombre, Precio, Imagen (opcional), Disponible (opcional)]
-            const products = [];
-            let skipped = 0;
-
-            // Función para obtener imagen placeholder estable
-            function getPlaceholderImage() {
-              // Imagen SVG base64 como placeholder estable
-              return 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAwIiBoZWlnaHQ9IjQwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNjAwIiBoZWlnaHQ9IjQwMCIgZmlsbD0iI2Y1ZjFlOCIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiM4YzVlNDYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5TaW4gSW1hZ2VuPC90ZXh0Pjwvc3ZnPg==';
-            }
-
-            for (let i = 1; i < rows.length; i++) {
-              const row = rows[i];
-              const categoria = row[0];
-              const nombre = row[1];
-              const precio = row[2];
-              const imgUrl = row[3]; // Columna opcional de imagen
-              const disponible = row[4] !== undefined ? (String(row[4]).toLowerCase() === 'si' || String(row[4]).toLowerCase() === 'sí' || row[4] === true) : true;
-
-              if (!nombre || !precio) {
-                skipped++;
-                continue;
-              }
-
-              const id = Date.now() + i + Math.random(); // ID único
-              const cat = categoria ? String(categoria).trim() : 'Ropa de Mujer';
-              const nm = String(nombre).trim();
-              const pr = parseFloat(precio) || 0;
-
-              // Manejar imagen: usar la del Excel si existe y es válida, sino usar placeholder estable
-              let img = '';
-              if (imgUrl && typeof imgUrl === 'string' && imgUrl.trim().length > 0) {
-                const urlTrimmed = imgUrl.trim();
-                // Validar que sea una URL válida
-                if (urlTrimmed.startsWith('http://') || urlTrimmed.startsWith('https://') || urlTrimmed.startsWith('/images/') || urlTrimmed.startsWith('data:')) {
-                  img = urlTrimmed;
-                } else {
-                  // Si no es una URL válida, usar placeholder
-                  img = getPlaceholderImage();
-                }
-              } else {
-                // Usar imagen placeholder estable
-                img = getPlaceholderImage();
-              }
-
-              products.push({ id, nombre: nm, precio: pr, categoria: cat, disponible, img, active: true });
-            }
-
-            if (products.length === 0) {
-              alert(`No se encontraron productos válidos en el archivo.${skipped > 0 ? ` Se omitieron ${skipped} productos.` : ''}\n\nFormato esperado:\nColumna A: Categoría\nColumna B: Nombre\nColumna C: Precio\nColumna D: URL de Imagen (opcional)\nColumna E: Disponible - Sí/No (opcional)`);
-              return;
-            }
-
-            if (confirm(`Se han encontrado ${products.length} productos en el Excel. ¿Deseas añadirlos al catálogo actual?`)) {
-              catalogo = [...catalogo, ...products];
-              await saveToGitHub();
-              mostrarTabla();
-              renderProducts();
-              alert(`✓ Importación completada: ${products.length} productos añadidos.`);
-            }
-            input.value = '';
-          } catch (e) {
-            alert('Error al importar: ' + e.message);
-          }
-        };
-
-        reader.readAsArrayBuffer(file);
-      }
-
-      // ===== EXPORTAR CATÁLOGO =====
-      function exportarCatalogo(formato = 'excel') {
-        if (!catalogo || catalogo.length === 0) {
-          alert('No hay productos para exportar');
-          return;
-        }
-
-        if (formato === 'json') {
-          const blob = new Blob([JSON.stringify(catalogo, null, 2)], { type: 'application/json' });
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = 'catalogo_bazar.json';
-          a.click();
-          URL.revokeObjectURL(url);
-        } else if (formato === 'excel') {
-          const datos = [['Categoría', 'Nombre', 'Precio (CUP)', 'Imagen (URL)', 'Disponible']];
-          catalogo.forEach(p => {
-            datos.push([
-              p.categoria || '',
-              p.nombre || '',
-              p.precio || 0,
-              p.img || '', // URL de imagen
-              p.disponible ? 'Sí' : 'No'
-            ]);
-          });
-
-          const hoja = XLSX.utils.aoa_to_sheet(datos);
-          hoja['!cols'] = [
-            { wch: 20 }, // Categoría
-            { wch: 30 }, // Nombre
-            { wch: 15 }, // Precio
-            { wch: 50 }, // Imagen
-            { wch: 12 }  // Disponible
-          ];
-          const libro = XLSX.utils.book_new();
-          XLSX.utils.book_append_sheet(libro, hoja, 'Productos');
-          XLSX.writeFile(libro, 'catalogo_bazar.xlsx');
-        }
-
-        alert('✓ Catálogo exportado correctamente');
-      }
-
-      // ===== INICIALIZACIÓN =====
-      // Verificar autenticación al cargar la página
-      async function verificarAutenticacion() {
-        const token = getToken();
-        if (!token) {
-          // No hay token, mostrar login
-          updateAuthUI();
-          return;
-        }
-
-        // Hay token, validarlo con GitHub
-        try {
-          const config = getConfig();
-          const res = await fetch(`${config.API_URL}/repos/${config.REPO_OWNER}/${config.REPO_NAME}`, {
-            headers: { 'Authorization': `token ${token}` }
-          });
-
-          if (res.ok) {
-            // Token válido, mostrar panel de administración
-            updateAuthUI();
-            await fetchProducts();
-          } else {
-            // Token inválido o expirado, limpiar y mostrar login
-            setToken(null);
-            updateAuthUI();
-            // No mostrar alert intrusivo al cargar, solo pedir login
-          }
-        } catch (e) {
-          // Error de conexión, pero si hay token guardado, intentar usarlo
-          // (útil si el servidor está temporalmente fuera de línea)
-          console.warn('Error verificando token:', e);
-          updateAuthUI();
-          // Intentar cargar productos de todas formas
-          if (token) {
-            try {
-              await fetchProducts();
-            } catch (err) {
-              console.error('No se pudieron cargar productos:', err);
-            }
-          }
-        }
-      }
-
-      // Ejecutar verificación al cargar
-      verificarAutenticacion();
+    document.getElementById('excelFile').onchange = cargarExcel;
+    verificarAutenticacion();
   </script>
 </body>
 
