@@ -2,7 +2,7 @@
 const CONFIG = {
   github: {
     REPO_OWNER: 'Daniel1976-cyber', // El usuario debe cambiar esto
-    REPO_NAME: 'DeFrank1',  // El usuario debe cambiar esto
+    REPO_NAME: 'bobobob',  // Nombre real detectado en git remote
     FILE_PATH: 'frontend/data/catalog.json',
     API_URL: 'https://api.github.com'
   },
