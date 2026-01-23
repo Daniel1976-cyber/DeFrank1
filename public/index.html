@@ -10,7 +10,7 @@
   <!-- DOMPurify para sanitizar HTML y prevenir XSS -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
   <!-- Configuración de ambiente -->
-  <script src="config.js"></script>
+  <script src="../config.js"></script>
   <style>
     :root {
       --verde: #3a6b4a;
@@ -367,7 +367,7 @@
 
     // Carga catálogo desde el archivo JSON (directo de GitHub o local)
     async function loadCatalogFromServer() {
-      const path = window.IS_LOCAL ? '../src/data/catalog.json' : '../src/data/catalog.json?t=' + Date.now();
+      const path = window.IS_LOCAL ? 'catalog.json' : 'catalog.json?t=' + Date.now();
 
       try {
         const res = await fetch(path);
