@@ -195,7 +195,7 @@
     "precio": 200,
     "categoria": "Ropa de Hombre",
     "disponible": true,
-    "img": "data/images/1766190917535-bcqe9d.jpg"
+    "img": "public/assets/images/1766190917535-bcqe9d.jpg"
   },
   {
     "active": true,
