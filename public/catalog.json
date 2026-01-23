@@ -87,7 +87,7 @@
     "precio": 80,
     "categoria": "",
     "disponible": true,
-    "img": "data/images/1765067377517-n20xvg.webp"
+    "img": "public/assets/images/1765067377517-n20xvg.webp"
   },
   {
     "active": true,
@@ -96,7 +96,7 @@
     "precio": 720,
     "categoria": "Plomería PVC",
     "disponible": true,
-    "img": "data/images/1765071416315-hbmvio.webp"
+    "img": "public/assets/images/1765071416315-hbmvio.webp"
   },
   {
     "active": true,
@@ -105,7 +105,7 @@
     "precio": 280,
     "categoria": "Plomería PVC",
     "disponible": true,
-    "img": "data/images/1765296215942-pp9fl2.webp"
+    "img": "public/assets/images/1765296215942-pp9fl2.webp"
   },
   {
     "active": true,
@@ -114,7 +114,7 @@
     "precio": 270,
     "categoria": "Plomería PVC",
     "disponible": true,
-    "img": "data/images/1765296249197-x94q3g.webp"
+    "img": "public/assets/images/1765296249197-x94q3g.webp"
   },
   {
     "active": true,
@@ -123,7 +123,7 @@
     "precio": 310,
     "categoria": "Plomería PVC",
     "disponible": true,
-    "img": "data/images/1765296303220-hbz640.webp"
+    "img": "public/assets/images/1765296303220-hbz640.webp"
   },
   {
     "active": true,
@@ -132,7 +132,7 @@
     "precio": 450,
     "categoria": "Plomería PVC",
     "disponible": true,
-    "img": "data/images/1765296344483-48f3pb.webp"
+    "img": "public/assets/images/1765296344483-48f3pb.webp"
   },
   {
     "active": true,
@@ -141,7 +141,7 @@
     "precio": 160,
     "categoria": "Plomería PVC",
     "disponible": true,
-    "img": "data/images/1765296385358-3fxh8z.webp"
+    "img": "public/assets/images/1765296385358-3fxh8z.webp"
   },
   {
     "active": true,
@@ -150,7 +150,7 @@
     "precio": 810,
     "categoria": "Plomería PVC",
     "disponible": true,
-    "img": "data/images/1765296477103-acnzed.webp"
+    "img": "public/assets/images/1765296477103-acnzed.webp"
   },
   {
     "active": true,
